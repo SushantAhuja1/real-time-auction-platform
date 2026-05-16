@@ -1,5 +1,9 @@
 package com.sushant.auction.bid;
 
+import java.time.Duration;
+import java.time.Instant;
+import org.springframework.data.redis.core.RedisTemplate;
+import com.sushant.auction.auction.dto.AuctionLeaderboardDto;
 import com.sushant.auction.auction.Auction;
 import com.sushant.auction.auction.AuctionRepository;
 import com.sushant.auction.auction.AuctionStatus;
@@ -21,6 +25,7 @@ public class BidService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final BidBroadcaster bidBroadcaster;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public BidResponse placeBid(BidRequest bidRequest, User bidder) {
@@ -36,6 +41,10 @@ public class BidService {
         }
         auction.setCurrentHighestBid(bidRequest.getAmount());
         auction.setCurrentHighestBidderId(bidder.getId());
+        long secondsRemaining = Duration.between(Instant.now(), auction.getCloseAt()).getSeconds();
+        if (secondsRemaining < 30 && secondsRemaining >= 0) {
+            auction.setCloseAt(auction.getCloseAt().plusSeconds(120));
+        }
         try{
             auctionRepository.saveAndFlush(auction);
         } catch(OptimisticLockingFailureException ex) {
@@ -52,6 +61,17 @@ public class BidService {
                 .build();
         Bid savedBid = bidRepository.save(bid);
         bidBroadcaster.broadcastNewBid(auction.getId(), mapToResponse(savedBid));
+        AuctionLeaderboardDto leaderboardDto = AuctionLeaderboardDto.builder()
+                .auctionId(auction.getId())
+                .title(auction.getTitle())
+                .currentHighestBid(auction.getCurrentHighestBid())
+                .build();
+
+        // 1. Save the Auction details in a Redis Hash (so we know the Title)
+        redisTemplate.opsForHash().put("auction_details", auction.getId().toString(), leaderboardDto);
+
+        // 2. Update the Leaderboard ZSET (Sorted Set) with the new high score
+        redisTemplate.opsForZSet().add("auction_leaderboard", auction.getId().toString(), bidRequest.getAmount().doubleValue());
         return mapToResponse(savedBid);
     }
 
