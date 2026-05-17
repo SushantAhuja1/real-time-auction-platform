@@ -4,6 +4,7 @@ import com.sushant.auction.auction.dto.AuctionDto;
 import com.sushant.auction.auction.dto.AuctionLeaderboardDto;
 import com.sushant.auction.auction.dto.CreateAuctionRequest;
 import com.sushant.auction.user.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class AuctionController {
 
     @PostMapping
     public ResponseEntity<AuctionDto> createAuction(
-            @RequestBody CreateAuctionRequest request,
+            @Valid @RequestBody CreateAuctionRequest request,
             @AuthenticationPrincipal User user) {
 
         return ResponseEntity.ok(auctionService.createAuction(request, user));

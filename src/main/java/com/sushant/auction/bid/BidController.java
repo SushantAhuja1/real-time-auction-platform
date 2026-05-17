@@ -3,6 +3,7 @@ package com.sushant.auction.bid;
 import com.sushant.auction.bid.dto.BidRequest;
 import com.sushant.auction.bid.dto.BidResponse;
 import com.sushant.auction.user.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,7 +18,7 @@ public class BidController {
     private final BidService bidService;
     @PostMapping
     public ResponseEntity<BidResponse> placeBid(
-            @RequestBody BidRequest bidRequest,
+            @Valid @RequestBody BidRequest bidRequest,
             @AuthenticationPrincipal User user
             ) {
             return ResponseEntity.ok(bidService.placeBid(bidRequest, user));
