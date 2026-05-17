@@ -2,6 +2,8 @@ package com.sushant.auction.bid;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+
 import org.springframework.data.redis.core.RedisTemplate;
 import com.sushant.auction.auction.dto.AuctionLeaderboardDto;
 import com.sushant.auction.auction.Auction;
@@ -97,5 +99,21 @@ public class BidService {
                 .rejectionReason(bid.getRejectionReason())
                 .createdAt(bid.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BidResponse> getBidsForAuction(Long auctionId) {
+        return bidRepository.findByAuctionIdOrderByCreatedAtDesc(auctionId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BidResponse> getMyBids(Long bidderId) {
+        return bidRepository.findByBidderIdOrderByCreatedAtDesc(bidderId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 }
